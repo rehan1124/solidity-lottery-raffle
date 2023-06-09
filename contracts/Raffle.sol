@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
+import "@chainlink/contracts/src/v0.8/VRFV2WrapperConsumerBase.sol";
+
 error Raffle__NotEnoughEthProvided();
 
 /**
@@ -8,16 +10,20 @@ error Raffle__NotEnoughEthProvided();
  * @author Syed Rehan
  * @notice In the Lottery game, people will contribute money and a randowm winner will be picked
  */
-contract Raffle {
+contract Raffle is VRFV2WrapperConsumerBase {
     // * State variable *
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
 
     // * Events *
-    event RaffleEnter (address indexed player)
+    event RaffleEnter(address indexed player, uint256 amountFunded);
 
     // * Constructor *
-    constructor(uint256 _entranceFee) {
+    constructor(
+        address linkAddress,
+        address wrapperAddress,
+        uint256 _entranceFee
+    ) VRFV2WrapperConsumerBase(linkAddress, wrapperAddress) {
         i_entranceFee = _entranceFee;
     }
 
@@ -30,13 +36,18 @@ contract Raffle {
             revert Raffle__NotEnoughEthProvided();
         }
         s_players.push(payable(msg.sender));
-        emit RaffleEnter(msg.sender);
+        emit RaffleEnter(msg.sender, msg.value);
     }
 
     /**
      * @notice Function to pick a randowm winner
      */
-    function pickRandomWinner() public payable {}
+    function requestRandomWinner() external payable {}
+
+    function fulfillRandomWords(
+        uint256 _requestId,
+        uint256[] memory _randomWords
+    ) internal override {}
 
     // * Getters *
     /**

@@ -1,5 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("@nomiclabs/hardhat-waffle");
+// require("@nomiclabs/hardhat-waffle");
 require("@nomicfoundation/hardhat-verify");
 require("hardhat-deploy");
 require("solidity-coverage");
