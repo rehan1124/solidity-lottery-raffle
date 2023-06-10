@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import "@chainlink/contracts/src/v0.8/VRFV2WrapperConsumerBase.sol";
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
 error Raffle__NotEnoughEthProvided();
 
@@ -10,7 +11,16 @@ error Raffle__NotEnoughEthProvided();
  * @author Syed Rehan
  * @notice In the Lottery game, people will contribute money and a randowm winner will be picked
  */
-contract Raffle is VRFV2WrapperConsumerBase {
+contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
+    // * Constants *
+    uint32 private constant CALLBACK_GAS_LIMIT = 100000;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
+    uint32 private constant NUM_WORDS = 1;
+    address private constant LINK_ADDRESS =
+        0x779877A7B0D9E8603169DdbD7836e478b4624789;
+    address private constant WRAPPER_ADDRESS =
+        0xab18414CD93297B0d12ac29E63Ca20f515b3DB46;
+
     // * State variable *
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
@@ -20,10 +30,11 @@ contract Raffle is VRFV2WrapperConsumerBase {
 
     // * Constructor *
     constructor(
-        address linkAddress,
-        address wrapperAddress,
         uint256 _entranceFee
-    ) VRFV2WrapperConsumerBase(linkAddress, wrapperAddress) {
+    )
+        ConfirmedOwner(msg.sender)
+        VRFV2WrapperConsumerBase(LINK_ADDRESS, WRAPPER_ADDRESS)
+    {
         i_entranceFee = _entranceFee;
     }
 
