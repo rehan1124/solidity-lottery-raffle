@@ -6,6 +6,7 @@ import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
 error Raffle__NotEnoughEthProvided();
 error Raffle__RequestNotFound();
+error Raffle_TransferFailed();
 
 /**
  * @title A contract to create a Lottery game
@@ -34,6 +35,7 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     // --- State variables ---
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
+    address private s_recentWinner;
 
     // Past requests Id.
     uint256[] public s_requestIds;
@@ -43,10 +45,11 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     event RaffleEnter(address indexed player, uint256 amountFunded);
     event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(
-        uint256 requestId,
+        uint256 indexed requestId,
         uint256[] randomWords,
         uint256 payment
     );
+    event WinnerPicked(address indexed winner);
 
     // --- Constructor ---
     constructor(
@@ -59,14 +62,51 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     }
 
     // --- Functions ---
+
+    /**
+     * @notice Function to enter in Lottery game
+     */
+    function enterRaffle() external payable {
+        if (msg.value < i_entranceFee) {
+            revert Raffle__NotEnoughEthProvided();
+        }
+
+        s_players.push(payable(msg.sender));
+
+        emit RaffleEnter(msg.sender, msg.value);
+    }
+
+    /**
+     * @notice Function to pick a randowm winner
+     */
+    function requestRandomWinner() external payable {
+        uint256 requestId = requestRandomWords();
+
+        (, , uint256[] memory randomWordsReceived) = getRequestStatus(
+            requestId
+        );
+
+        fulfillRandomWords(requestId, randomWordsReceived);
+
+        uint256 winnerIndex = randomWordsReceived[0] % s_players.length;
+
+        address payable winner = s_players[winnerIndex];
+
+        s_recentWinner = winner;
+
+        (bool success, ) = winner.call{value: address(this).balance}("");
+
+        if (!success) {
+            revert Raffle_TransferFailed();
+        }
+
+        emit WinnerPicked(winner);
+    }
+
     /**
      * @notice Takes your specified parameters and submits the request to the VRF v2 Wrapper contract.
      */
-    function requestRandomWords()
-        external
-        onlyOwner
-        returns (uint256 requestId)
-    {
+    function requestRandomWords() public onlyOwner returns (uint256 requestId) {
         requestId = requestRandomness(
             CALLBACK_GAS_LIMIT,
             REQUEST_CONFIRMATIONS,
@@ -79,8 +119,11 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
         });
 
         s_requestIds.push(requestId);
+
         s_lastRequestId = requestId;
+
         emit RequestSent(requestId, NUM_WORDS);
+
         return requestId;
     }
 
@@ -94,31 +137,17 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     function getRequestStatus(
         uint256 _requestId
     )
-        external
+        public
         view
         returns (uint256 paid, bool fulfilled, uint256[] memory randomWords)
     {
         if (s_requests[_requestId].paid < 0) {
             revert Raffle__RequestNotFound();
         }
+
         RequestStatus memory request = s_requests[_requestId];
+
         return (request.paid, request.fulfilled, request.randomWords);
-    }
-
-    /**
-     * @notice Function to pick a randowm winner
-     */
-    function requestRandomWinner() external payable {}
-
-    /**
-     * @notice Function to enter in Lottery game
-     */
-    function enterRaffle() public payable {
-        if (msg.value < i_entranceFee) {
-            revert Raffle__NotEnoughEthProvided();
-        }
-        s_players.push(payable(msg.sender));
-        emit RaffleEnter(msg.sender, msg.value);
     }
 
     /**
@@ -133,8 +162,11 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
         if (s_requests[_requestId].paid < 0) {
             revert Raffle__RequestNotFound();
         }
+
         s_requests[_requestId].fulfilled = true;
+
         s_requests[_requestId].randomWords = _randomWords;
+
         emit RequestFulfilled(
             _requestId,
             _randomWords,
@@ -158,5 +190,9 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
      */
     function getPlayers(uint256 _index) public view returns (address) {
         return s_players[_index];
+    }
+
+    function getRecentWinner() public view returns (address) {
+        return s_recentWinner;
     }
 }
