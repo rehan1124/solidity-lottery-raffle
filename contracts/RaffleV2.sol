@@ -13,15 +13,6 @@ error Raffle__RequestNotFound();
  * @notice In the Lottery game, people will contribute money and a randowm winner will be picked
  */
 contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
-    // --- Events ---
-    event RaffleEnter(address indexed player, uint256 amountFunded);
-    event RequestSent(uint256 requestId, uint32 numWords);
-    event RequestFulfilled(
-        uint256 requestId,
-        uint256[] randomWords,
-        uint256 payment
-    );
-
     // --- Constants ---
     uint32 private constant CALLBACK_GAS_LIMIT = 100000;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
@@ -48,6 +39,15 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     uint256[] public s_requestIds;
     uint256 public s_lastRequestId;
 
+    // --- Events ---
+    event RaffleEnter(address indexed player, uint256 amountFunded);
+    event RequestSent(uint256 requestId, uint32 numWords);
+    event RequestFulfilled(
+        uint256 requestId,
+        uint256[] randomWords,
+        uint256 payment
+    );
+
     // --- Constructor ---
     constructor(
         uint256 _entranceFee
@@ -59,17 +59,6 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     }
 
     // --- Functions ---
-    /**
-     * @notice Function to enter in Lottery game
-     */
-    function enterRaffle() public payable {
-        if (msg.value < i_entranceFee) {
-            revert Raffle__NotEnoughEthProvided();
-        }
-        s_players.push(payable(msg.sender));
-        emit RaffleEnter(msg.sender, msg.value);
-    }
-
     /**
      * @notice Takes your specified parameters and submits the request to the VRF v2 Wrapper contract.
      */
@@ -93,27 +82,6 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
         s_lastRequestId = requestId;
         emit RequestSent(requestId, NUM_WORDS);
         return requestId;
-    }
-
-    /**
-     * @notice Receives random values and stores them with your contract.
-     * @param _requestId Request ID
-     * @param _randomWords Random words from Chainlink VRF
-     */
-    function fulfillRandomWords(
-        uint256 _requestId,
-        uint256[] memory _randomWords
-    ) internal override {
-        if (s_requests[_requestId].paid < 0) {
-            revert Raffle__RequestNotFound();
-        }
-        s_requests[_requestId].fulfilled = true;
-        s_requests[_requestId].randomWords = _randomWords;
-        emit RequestFulfilled(
-            _requestId,
-            _randomWords,
-            s_requests[_requestId].paid
-        );
     }
 
     /**
@@ -142,7 +110,39 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
      */
     function requestRandomWinner() external payable {}
 
-    // * Getters *
+    /**
+     * @notice Function to enter in Lottery game
+     */
+    function enterRaffle() public payable {
+        if (msg.value < i_entranceFee) {
+            revert Raffle__NotEnoughEthProvided();
+        }
+        s_players.push(payable(msg.sender));
+        emit RaffleEnter(msg.sender, msg.value);
+    }
+
+    /**
+     * @notice Receives random values and stores them with your contract.
+     * @param _requestId Request ID
+     * @param _randomWords Random words from Chainlink VRF
+     */
+    function fulfillRandomWords(
+        uint256 _requestId,
+        uint256[] memory _randomWords
+    ) internal override {
+        if (s_requests[_requestId].paid < 0) {
+            revert Raffle__RequestNotFound();
+        }
+        s_requests[_requestId].fulfilled = true;
+        s_requests[_requestId].randomWords = _randomWords;
+        emit RequestFulfilled(
+            _requestId,
+            _randomWords,
+            s_requests[_requestId].paid
+        );
+    }
+
+    // --- Getters ---
     /**
      * @notice Getter function to retrieve entrance fee
      * @return Returns entrance fee for Lottery game
