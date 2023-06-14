@@ -14,13 +14,9 @@ error Raffle_TransferFailed();
  * @author Syed Rehan
  * @notice In the Lottery game, people will contribute money and a randowm winner will be picked
  */
-contract Raffle is
-    VRFV2WrapperConsumerBase,
-    ConfirmedOwner,
-    AutomationCompatible
-{
+contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     // --- Constants ---
-    uint32 private constant CALLBACK_GAS_LIMIT = 100000;
+    uint32 private constant CALLBACK_GAS_LIMIT = 10000000;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private constant NUM_WORDS = 1;
     address private constant VRF_LINK_ADDRESS =
@@ -70,7 +66,7 @@ contract Raffle is
 
     /**
      *
-     * @notice Mthod executed by Chainlink keepers
+     * @notice Method executed by Chainlink keepers
      */
     // function checkUpkeep(bytes calldata) external override {}
 
@@ -117,7 +113,11 @@ contract Raffle is
     /**
      * @notice Takes your specified parameters and submits the request to the VRF v2 Wrapper contract.
      */
-    function requestRandomWords() public onlyOwner returns (uint256 requestId) {
+    function requestRandomWords()
+        internal
+        onlyOwner
+        returns (uint256 requestId)
+    {
         requestId = requestRandomness(
             CALLBACK_GAS_LIMIT,
             REQUEST_CONFIRMATIONS,
@@ -148,7 +148,7 @@ contract Raffle is
     function getRequestStatus(
         uint256 _requestId
     )
-        public
+        internal
         view
         returns (uint256 paid, bool fulfilled, uint256[] memory randomWords)
     {
