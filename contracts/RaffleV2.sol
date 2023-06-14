@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "@chainlink/contracts/src/v0.8/VRFV2WrapperConsumerBase.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
 error Raffle__NotEnoughEthProvided();
 error Raffle__RequestNotFound();
@@ -13,7 +14,11 @@ error Raffle_TransferFailed();
  * @author Syed Rehan
  * @notice In the Lottery game, people will contribute money and a randowm winner will be picked
  */
-contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
+contract Raffle is
+    VRFV2WrapperConsumerBase,
+    ConfirmedOwner,
+    AutomationCompatible
+{
     // --- Constants ---
     uint32 private constant CALLBACK_GAS_LIMIT = 100000;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
@@ -62,6 +67,12 @@ contract Raffle is VRFV2WrapperConsumerBase, ConfirmedOwner {
     }
 
     // --- Functions ---
+
+    /**
+     *
+     * @notice Mthod executed by Chainlink keepers
+     */
+    // function checkUpkeep(bytes calldata) external override {}
 
     /**
      * @notice Function to enter in Lottery game
