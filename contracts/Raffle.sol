@@ -151,6 +151,7 @@ contract Raffle is
      * @notice Function to pick a random winner
      */
     function performUpkeep(bytes calldata /* performData */) external override {
+        // Check if Upkeep is needed
         (bool upkeepNeeded, ) = this.checkUpkeep("");
 
         if (!upkeepNeeded) {
@@ -161,6 +162,7 @@ contract Raffle is
             );
         }
 
+        // If Upkeep needed, execute steps to do so.
         s_raffleState = RaffleState.CALCULATING;
 
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
@@ -249,5 +251,13 @@ contract Raffle is
 
     function getRaffleState() public view returns (RaffleState) {
         return s_raffleState;
+    }
+
+    function getNumberOfPlayers() public view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLotteryStartTimeStamp() public view returns (uint256) {
+        return s_lastTimeStamp;
     }
 }
