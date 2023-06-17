@@ -1,17 +1,23 @@
-const { network } = require("hardhat");
+const { network, ethers } = require("hardhat");
+const { verify } = require("../utils/verify");
 
 const deployFunc = async (hre) => {
   const { getNamedAccounts, deployments } = hre;
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  await deploy("Raffle", {
+  const args = [ethers.utils.parseEther("0.001"), "60"];
+
+  const raffle = await deploy("Raffle", {
     from: deployer,
-    args: [1000],
+    args: args,
     log: true,
-    waitConfirmations: network.config.blockConfirmations || 1,
+    waitConfirmations: network.config.blockConfirmations || 6,
   });
-  log("---Deployment completed ---");
+  log("--- Deployment completed ---");
+
+  await verify(raffle.address, args);
+  log("--- Verification done ---");
 };
 
 module.exports = deployFunc;
